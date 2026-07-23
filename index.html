@@ -4,8 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>✨ Wish Note | دفتر آرزوها</title>
+    
+    <!-- Fonts and Libraries -->
     <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    
+    <!-- Jalali DatePicker CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/@majidh1/jalalidatepicker/dist/jalalidatepicker.min.css">
+    <script type="text/javascript" src="https://unpkg.com/@majidh1/jalalidatepicker/dist/jalalidatepicker.min.js"></script>
+    
+    <!-- Moment.js & Moment-Jalaali for accurate time calculation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment-jalaali/0.9.6/moment-jalaali.min.js"></script>
+
     <style>
         :root {
             --primary: #ff9a9e;
@@ -38,7 +49,7 @@
         .container {
             width: 100%;
             max-width: 600px;
-            margin-top: 40px;
+            margin-top: 20px;
         }
 
         .glass-panel {
@@ -66,7 +77,7 @@
             color: #555;
         }
 
-        input[type="text"], input[type="date"] {
+        input[type="text"] {
             width: 90%;
             padding: 15px;
             margin: 10px 0;
@@ -77,12 +88,19 @@
             background: rgba(255, 255, 255, 0.7);
             outline: none;
             transition: all 0.3s ease;
+            box-sizing: border-box;
         }
 
-        input[type="text"]:focus, input[type="date"]:focus {
+        input[type="text"]:focus {
             border-color: #ff6b81;
             background: white;
             box-shadow: 0 0 15px rgba(255, 107, 129, 0.2);
+        }
+
+        /* Customizing Jalali Datepicker to match the theme */
+        jdp-container {
+            z-index: 9999 !important;
+            font-family: 'Vazirmatn', sans-serif !important;
         }
 
         button.btn-add {
@@ -125,7 +143,7 @@
         }
 
         .wish-card.fulfilled {
-            background: rgba(186, 255, 201, 0.4);
+            background: rgba(186, 255, 201, 0.6);
             border-color: #baffc9;
         }
 
@@ -136,12 +154,201 @@
         }
 
         .wish-title {
-            font-size: 1.4rem;
+            font-size: 1.3rem;
             font-weight: bold;
             margin: 0;
             color: #2d3436;
+            line-height: 1.5;
         }
 
+        .countdown {
+            font-size: 1rem;
+            color: #d63031;
+            font-weight: bold;
+            background: rgba(255,255,255,0.7);
+            padding: 8px 15px;
+            border-radius: 12px;
+            margin-top: 15px;
+            text-align: center;
+        }
+
+        .actions {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-done {
+            background: #00b894;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-family: inherit;
+            flex: 1;
+            font-weight: bold;
+            font-size: 1rem;
+        }
+        
+        .btn-delete {
+            background: #ff7675;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 1.2rem;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Input Section -->
+        <div class="glass-panel">
+            <h1>✨ Wish Note </h1>
+            <p class="subtitle">هر چیزی اینجا بنویسی، به حقیقت می‌پیونده!</p>
+            
+            <input type="text" id="wishInput" placeholder="آرزوت چیه؟ (مثلا: یادگیری اسپانیایی)">
+            <!-- Jalali Date Input -->
+            <input data-jdp type="text" id="dateInput" placeholder="تاریخ رسیدن به آرزو (انتخاب کنید)" readonly>
+            
+            <button class="btn-add" onclick="addWish()">ثبت در کائنات 🪄</button>
+        </div>
+
+        <!-- Wishes Container -->
+        <div id="wishes-list"></div>
+    </div>
+
+    <script>
+        // Initialize Jalali Datepicker
+        jalaliDatepicker.startWatch({
+            time: false,
+            showTodayBtn: true,
+            showEmptyBtn: false
+        });
+
+        let wishes = JSON.parse(localStorage.getItem('wishnote_data')) || [];
+
+        function saveWishes() {
+            localStorage.setItem('wishnote_data', JSON.stringify(wishes));
+        }
+
+        function addWish() {
+            const title = document.getElementById('wishInput').value;
+            const deadline = document.getElementById('dateInput').value;
+
+            if (!title || !deadline) {
+                alert("لطفاً هم آرزوت رو بنویس و هم تاریخش رو از تقویم انتخاب کن! 🧚‍♀️");
+                return;
+            }
+
+            const newWish = {
+                id: Date.now(),
+                title: title,
+                deadline: deadline, // Saves Jalali string like "1403/05/20"
+                isFulfilled: false
+            };
+
+            wishes.push(newWish);
+            saveWishes();
+            
+            // Clear inputs
+            document.getElementById('wishInput').value = '';
+            document.getElementById('dateInput').value = '';
+            
+            renderWishes();
+        }
+
+        function fulfillWish(id) {
+            const wishIndex = wishes.findIndex(w => w.id === id);
+            if(wishIndex > -1) {
+                wishes[wishIndex].isFulfilled = true;
+                saveWishes();
+                renderWishes();
+                
+                // Fire Confetti! 🎉
+                confetti({
+                    particleCount: 200,
+                    spread: 90,
+                    origin: { y: 0.6 },
+                    colors: ['#ff9a9e', '#a1c4fd', '#fecfef', '#ffffff', '#00b894']
+                });
+            }
+        }
+
+        function deleteWish(id) {
+            wishes = wishes.filter(w => w.id !== id);
+            saveWishes();
+            renderWishes();
+        }
+
+        function updateCountdowns() {
+            wishes.forEach(wish => {
+                if(wish.isFulfilled) return;
+                
+                const timerElement = document.getElementById(`timer-${wish.id}`);
+                if(!timerElement) return;
+
+                // Convert Jalali string to timestamp using moment-jalaali
+                const targetDate = moment(wish.deadline, 'jYYYY/jMM/jDD').valueOf();
+                const now = new Date().getTime();
+                const distance = targetDate - now;
+
+                if (distance < 0) {
+                    timerElement.innerHTML = "⏳ زمانت تموم شده! ولی هنوز می‌تونی انجامش بدی!";
+                    timerElement.style.color = "#d63031";
+                } else {
+                    const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+                    const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                    timerElement.innerHTML = `⏳ زمان باقی‌مانده: ${days} روز و ${hours} ساعت`;
+                }
+            });
+        }
+
+        function renderWishes() {
+            const list = document.getElementById('wishes-list');
+            list.innerHTML = '';
+
+            wishes.slice().reverse().forEach(wish => {
+                const card = document.createElement('div');
+                card.className = `wish-card ${wish.isFulfilled ? 'fulfilled' : ''}`;
+                
+                let actionButtons = '';
+                if(!wish.isFulfilled) {
+                    actionButtons = `
+                        <button class="btn-done" onclick="fulfillWish(${wish.id})">انجامش دادم! 🥳</button>
+                    `;
+                } else {
+                    actionButtons = `<div style="flex: 1; color: #00b894; font-weight: bold; text-align: center;">✅ این آرزو برآورده شد!</div>`;
+                }
+
+                card.innerHTML = `
+                    <div class="wish-header">
+                        <h3 class="wish-title">${wish.title}</h3>
+                    </div>
+                    ${!wish.isFulfilled ? `<div class="countdown" id="timer-${wish.id}">در حال محاسبه...</div>` : ''}
+                    <div class="actions">
+                        ${actionButtons}
+                        <button class="btn-delete" title="حذف" onclick="deleteWish(${wish.id})">🗑️</button>
+                    </div>
+                `;
+                list.appendChild(card);
+            });
+            updateCountdowns();
+        }
+
+        // Initialize
+        renderWishes();
+        
+        // Update timers every minute
+        setInterval(updateCountdowns, 1000 * 60); 
+    </script>
+</body>
+</html>
         .countdown {
             font-size: 1.1rem;
             color: #d63031;
