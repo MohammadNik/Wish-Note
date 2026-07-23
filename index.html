@@ -97,7 +97,6 @@
             box-shadow: 0 0 15px rgba(255, 107, 129, 0.2);
         }
 
-        /* Customizing Jalali Datepicker to match the theme */
         jdp-container {
             z-index: 9999 !important;
             font-family: 'Vazirmatn', sans-serif !important;
@@ -201,30 +200,25 @@
             font-family: inherit;
             font-size: 1.2rem;
         }
-
     </style>
 </head>
 <body>
 
     <div class="container">
-        <!-- Input Section -->
         <div class="glass-panel">
             <h1>✨ Wish Note </h1>
             <p class="subtitle">هر چیزی اینجا بنویسی، به حقیقت می‌پیونده!</p>
             
             <input type="text" id="wishInput" placeholder="آرزوت چیه؟">
-            <!-- Jalali Date Input -->
-            <input data-jdp type="text" id="dateInput" placeholder="تاریخ رسیدن به آرزو (انتخاب کنید)" readonly>
+            <input data-jdp type="text" id="dateInput" placeholder="تاریخ رسیدن به آرزو" readonly>
             
             <button class="btn-add" onclick="addWish()">ثبت در کائنات 🪄</button>
         </div>
 
-        <!-- Wishes Container -->
         <div id="wishes-list"></div>
     </div>
 
     <script>
-        // Initialize Jalali Datepicker
         jalaliDatepicker.startWatch({
             time: false,
             showTodayBtn: true,
@@ -235,6 +229,17 @@
 
         function saveWishes() {
             localStorage.setItem('wishnote_data', JSON.stringify(wishes));
+        }
+
+        // تابع تبدیل اعداد فارسی به انگلیسی
+        function toEnglishDigits(str) {
+            const persianNumbers = [/۰/g, /۱/g, /۲/g, /۳/g, /۴/g, /۵/g, /۶/g, /۷/g, /۸/g, /۹/g];
+            if(typeof str === 'string') {
+                for(let i=0; i<10; i++) {
+                    str = str.replace(persianNumbers[i], i);
+                }
+            }
+            return str;
         }
 
         function addWish() {
@@ -249,14 +254,13 @@
             const newWish = {
                 id: Date.now(),
                 title: title,
-                deadline: deadline, // Saves Jalali string like "1403/05/20"
+                deadline: deadline, 
                 isFulfilled: false
             };
 
             wishes.push(newWish);
             saveWishes();
             
-            // Clear inputs
             document.getElementById('wishInput').value = '';
             document.getElementById('dateInput').value = '';
             
@@ -270,7 +274,6 @@
                 saveWishes();
                 renderWishes();
                 
-                // Fire Confetti! 🎉
                 confetti({
                     particleCount: 200,
                     spread: 90,
@@ -293,8 +296,11 @@
                 const timerElement = document.getElementById(`timer-${wish.id}`);
                 if(!timerElement) return;
 
-                // Convert Jalali string to timestamp using moment-jalaali
-                const targetDate = moment(wish.deadline, 'jYYYY/jMM/jDD').valueOf();
+                // تبدیل اعداد فارسی به انگلیسی برای محاسبه دقیق
+                const englishDate = toEnglishDigits(wish.deadline);
+                
+                // تنظیم ساعت روی 23:59:59 همون روز که زود منقضی نشه
+                const targetDate = moment(englishDate, 'jYYYY/jMM/jDD').endOf('day').valueOf();
                 const now = new Date().getTime();
                 const distance = targetDate - now;
 
@@ -341,10 +347,7 @@
             updateCountdowns();
         }
 
-        // Initialize
         renderWishes();
-        
-        // Update timers every minute
         setInterval(updateCountdowns, 1000 * 60); 
     </script>
 </body>
